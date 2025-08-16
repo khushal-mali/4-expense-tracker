@@ -1,10 +1,37 @@
 import { StyleSheet, Text, View } from "react-native";
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import ExpensesOutput from "../components/ExpensesOutput/ExpensesOutput";
 import { ExpenseContext } from "../store/expense-context";
+import { fetchExpense } from "../utils/https";
+import LoadingOverlay from "../components/ui/LoadingOverlay";
+import ErrorOverlay from "../components/ui/ErrorOverlay";
 
 const RecentExpense = () => {
-  const { expenses } = useContext(ExpenseContext);
+  const [isFetching, setIsFetching] = useState(true);
+  const [error, setError] = useState();
+  const { expenses, setExpenses } = useContext(ExpenseContext);
+
+  useEffect(() => {
+    async function getExpenses() {
+      setIsFetching(true);
+      try {
+        const expenses = await fetchExpense();
+        setExpenses(expenses);
+      } catch (error) {
+        setError("Could not fetch expenses!");
+      }
+      setIsFetching(false);
+    }
+    getExpenses();
+  }, []);
+
+  if (isFetching) {
+    return <LoadingOverlay />;
+  }
+
+  if (error && !isFetching) {
+    return <ErrorOverlay message={error} />;
+  }
 
   const recentExpenses = expenses.filter((expense) => {
     const today = new Date();
@@ -12,7 +39,6 @@ const RecentExpense = () => {
 
     // Assuming expense.date is a Date object or a string that can be parsed to Date
     const expenseDate = new Date(expense.date);
-    console.log(expenseDate, date7DaysAgo);
 
     return expenseDate >= date7DaysAgo && expenseDate <= today;
   });
